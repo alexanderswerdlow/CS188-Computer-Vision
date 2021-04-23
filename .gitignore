@@ -1,0 +1,10 @@
+PSET1/.vscode/settings.json
+**/_minted-main/
+**/.idea/
+**/build/
+**/.ipynb_checkpoints/
+main.log
+main.fls
+main.aux
+main.fdb_latexmk
+main.synctex.gz

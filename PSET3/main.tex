@@ -1,0 +1,586 @@
+\documentclass[answers]{exam}
+\renewcommand{\solutiontitle}{\noindent\textbf{}\par\noindent}
+
+\usepackage{fullpage} % Package to use full page
+\usepackage{parskip} % Package to tweak paragraph skipping
+\usepackage{tikz} % Package for drawing
+\usepackage{amsmath}
+\usepackage{blindtext}
+%\usepackage{hyperref}
+\usepackage{graphicx}
+\usepackage{enumerate}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{multicol}
+\usepackage{mathptmx}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{nameref}
+\usepackage{minted}
+\usepackage{graphicx}
+
+\newcommand{\mypoints}[1]{\textcolor{red}{(#1 points)}}
+\newcommand{\achuta}[1]{\textcolor{magenta}{Achuta: #1}}
+\newcommand{\chinmay}[1]{\textcolor{orange}{Chinmay: #1}}
+\newcommand{\albert}[1]{\textcolor{purple}{Albert: #1}}
+\newcommand{\myinput}[1]{\textcolor{blue}{#1}}
+
+\title{\normalfont \normalsize
+\textsc{{Department of Computer Science, UCLA \\
+COM SCI 188: Computer Vision}}
+\date{\vspace{-12ex}}
+}
+\begin{document}
+\maketitle
+\rule{\linewidth}{0.8pt} \\[6pt] 
+\noindent
+\large\textbf{\textsc{Instructor:}} Prof. Achuta Kadambi, Prof. Stefano Soatto \hfill \large\textbf{\textsc{Name:}} \myinput{Alexander Swerdlow}\\
+\large\textbf{\textsc{TAs:}} Aditya Golatkar, Albert Zhao, Chinmay Talegaonkar \hfill 
+\large\textbf{\textsc{UID:}} \myinput{305065891}
+\rule{\linewidth}{0.8pt} \\[6pt] 
+
+\begin{center}
+{\textsc{Homework 3}} 
+\end{center}
+% \vspace{2cm}
+
+
+\begin{table}[h]
+\centering
+\resizebox{0.8\textwidth}{!}{%
+\begin{tabular}{cccc}
+\hline
+\multicolumn{1}{c}{\textsc{Problem}} &
+\multicolumn{1}{c}{\textsc{Type}} &
+\multicolumn{1}{c}{\textsc{Topic}} & \multicolumn{1}{c}{\textsc{Max. Points}} \\  \hline \\ 
+ 1 & Analytical & Difference of Gaussians & 5 \\ [2mm]
+ 2 & Analytical & Keypoint Localization for SIFT &  10 \\ [2mm]
+ 3 & Coding & Image Stitching & 15 \\ [2mm]
+ 4 & Coding & Olympic Champion using Homography & 5 \\ [2mm]
+ 5 & Coding & Eight-Point Algorithm & 10 \\ [2mm]
+\hline
+\end{tabular}
+}
+\caption*{}
+\label{}
+\end{table}
+
+\newpage
+
+\section*{Motivation}
+
+In the previous homework and in lecture, we have seen how to extract useful features such as corners using the Harris corner detector and keypoints and feature descriptors using SIFT. These features can then be used to compute correspondences between multiple images, which are useful for a variety of tasks such as image stitching and 3D reconstruction. In this homework, we will focus on SIFT and some applications of correspondences. First, we will examine some analytical aspects of SIFT. We will then transition to various applications of correspondences in 2D: two applications of image stitching, which combines correspondences (extracted via SIFT + RANSAC or manually defined) and homographies. Finally, we will use correspondences and the eight-point algorithm to reconstruct 3D points given correspondences. 
+
+The problem set consists of: 
+\begin{itemize}
+    \item analytical questions to solidify the concepts covered in the class; and
+    \item coding questions to implement some of the algorithms described in class using Python.
+\end{itemize}
+
+\section*{Homework Layout}
+The homework consists of 5 problems in total, with subparts for each problem. There are 2 types of problems in this homework - analytical and coding. We encourage you to answer all the problems using the Overleaf document; however, handwritten solutions will also be accepted.
+
+\section*{Submission}
+
+You will need to make two submissions: (1) Gradescope: You will submit a PDF with all the answers on Gradescope. (2) CCLE: You will submit your Jupyter notebook (.ipynb file) with filename $\{$your UID$\}$.ipynb with all the cells executed on CCLE. 
+
+
+\newpage
+\section{Difference of Gaussians \mypoints{5.0}}
+In class, you were taught that the SIFT (scale-invariant feature transform) detector and descriptor uses Difference of Gaussians (DoG) as a computationally efficient approximation to Laplacian of Gaussians (LoG). In this question, you will derive that the Difference of Gaussians approximates the Laplacian of Gaussians. Let $G(x,y, \sigma) = \dfrac{1}{2\pi \sigma^2} e^{-\big(\dfrac{x^2+y^2}{2\sigma^2}\big)}$ be the 2D Gaussian.
+
+\subsection{Compute $\dfrac{\partial G(x,y,\sigma)}{\partial \sigma}$ \mypoints{1.0}}
+Write the expression for $\dfrac{\partial G(x,y,\sigma)}{\partial \sigma}$.
+ 
+\begin{solution}
+$
+    \dfrac{\partial G(x,y,\sigma)}{\partial \sigma}=\frac{e^{-\frac{x^2+y^2}{2 \sigma ^2}} \left(-2 \sigma ^2+x^2+y^2\right)}{2 \pi  \sigma ^5}
+$
+\end{solution}
+
+\subsection{Laplacian of a 2D Gaussian \mypoints{1.0}}
+Write the expression for the Laplacian of a 2D Gaussian, $L(x, y)$. \emph{Hint}: this expression was computed in Homework 2.
+
+\begin{solution}
+$$
+\begin{aligned}
+    \nabla^{2} G_{\sigma}=G_{\sigma_{xx}}+G_{\sigma_{yy}}\\
+    \therefore \quad LoG(x, y)=\nabla^{2} G_{\sigma}&=\frac{\partial^{2}}{\partial x^{2}} G_{\sigma}(x, y)+\frac{\partial^{2}}{\partial y^{2}} G_{\sigma}(x, y) \\
+    &=(\dfrac{1}{2\pi \sigma^2})\frac{x^{2}-\sigma^{2}}{\sigma^{4}} e^{-\left(x^{2}+y^{2}\right) / 2 \sigma^{2}}+(\dfrac{1}{2\pi \sigma^2})\frac{y^{2}-\sigma^{2}}{\sigma^{4}} e^{-\left(x^{2}+y^{2}\right) / 2 \sigma^{2}} \\
+    &=(\dfrac{1}{2\pi \sigma^2})\frac{x^{2}+y^{2}-2 \sigma^{2}}{\sigma^{4}} e^{-\left(x^{2}+y^{2}\right) / 2 \sigma^{2}}
+\end{aligned}
+$$
+\end{solution}
+
+\subsection{Relationship of $\dfrac{\partial G(x,y,\sigma)}{\partial \sigma}$ to Laplacian of Gaussian \mypoints{1.0}}
+Using the expressions you obtained in the previous two parts, express $\dfrac{\partial G(x,y,\sigma)}{\partial \sigma}$ in terms of the Laplacian of Gaussian $L(x, y)$.
+\begin{solution}
+$
+\dfrac{\partial G(x,y,\sigma)}{\partial \sigma}=\sigma * L(x, y)
+$
+\end{solution}
+
+\subsection{Approximating $\dfrac{\partial G(x,y,\sigma)}{\partial \sigma}$ \mypoints{1.0}}
+Write an expression approximating $\dfrac{\partial G(x,y,\sigma)}{\partial \sigma}$ in terms of $G(x,y,k\sigma)$ and $G(x,y,\sigma)$ for $k \approx 1$.
+\begin{solution}
+
+$\dfrac{\partial G(x,y,\sigma)}{\partial \sigma}\approx \frac{G(x,y,k\sigma)-G(x,y,\sigma)}{\sigma(k-1)}$
+
+\end{solution}
+
+\subsection{Approximating Laplacian of Gaussian Using Difference of Gaussians \mypoints{1.0}}
+Write an expression approximating the Laplacian of Gaussian, $L(x, y)$, in terms of the Difference of Gaussians, $D(x,y,\sigma)=G(x,y,k\sigma)-G(x,y,\sigma)$, for $k \approx 1$.
+\begin{solution}
+\begin{align*}
+    \dfrac{\partial G}{\partial \sigma}&= \sigma \nabla^2 G \\
+    \therefore\;\;L(x,y)&=\frac{1}{\sigma}\dfrac{\partial G}{\partial \sigma}\\
+    &\approx \frac{1}{\sigma}\frac{G(x,y,k\sigma)-G(x,y,\sigma)}{\sigma(k-1)}\\
+    &=\frac{G(x,y,k\sigma)-G(x,y,\sigma)}{\sigma^2(k-1)}\\
+    &=\frac{D(x,y,\sigma)}{\sigma^2(k-1)}
+\end{align*}
+\end{solution}
+
+\newpage
+\section{Keypoint Localization for SIFT \mypoints{10.0}}
+In class, you were taught that SIFT first finds the extrema of the Difference of Gaussians (DoG) and then localizes the keypoints using a Taylor series approximation of the DoG. In this question, you will derive the keypoint localization formula and explain why it is used in SIFT. Let $f(\mathbf{x})$ be the Difference of Gaussians, where $\mathbf{x} = (x, y, \sigma)$ represents the location and scale.
+
+\subsection{Taylor Series Approximation for DoG \mypoints{1.0}}
+Write the second order Taylor series approximation of $f(\mathbf{x} + \Delta \mathbf{x})$ centered around $f(\mathbf{x})$. You do not need to compute the derivatives.
+\begin{solution}
+$f(\mathbf{x} + \Delta \mathbf{x})\approx
+f(x)+\dfrac{\partial f(\mathbf{x})^T}{\partial \mathbf{x}}\Delta \mathbf{x}+\frac{1}{2}\Delta \mathbf{x}^T\dfrac{\partial^2 f(\mathbf{x})^T}{\partial \mathbf{x}^2}\Delta \mathbf{x}$
+\end{solution}
+
+\subsection{Derivative of Taylor Series Approximation \mypoints{1.0}}
+Using the Taylor series approximation of $f(\mathbf{x} + \Delta \mathbf{x})$, write the expression for $\dfrac{\partial f(\mathbf{x} + \Delta \mathbf{x})}{\partial \Delta \mathbf{x}}$.
+\begin{solution}
+\begin{align}
+\dfrac{\partial f(\mathbf{x} + \Delta \mathbf{x})}{\partial \Delta \mathbf{x}}&=\dfrac{\partial }{\partial \Delta \mathbf{x}}
+\left[
+f(x)+\dfrac{\partial f(\mathbf{x})^T}{\partial \mathbf{x}}\Delta \mathbf{x}+\frac{1}{2}\Delta \mathbf{x}^T\dfrac{\partial^2 f(\mathbf{x})^T}{\partial \mathbf{x}^2}\Delta \mathbf{x}\right]\\
+\dfrac{\partial f(\mathbf{x} + \Delta \mathbf{x})}{\partial \Delta \mathbf{x}}&=
+\dfrac{\partial f(\mathbf{x})}{\partial \mathbf{x}} + \dfrac{\partial^2 f(\mathbf{x})}{\partial \mathbf{x}^2}\Delta \mathbf{x}
+\end{align}
+\end{solution}
+
+\subsection{Extrema of Taylor Series Approximation \mypoints{1.0}}
+Using the results from the previous part, write the expression for the extrema $\Delta \mathbf{x}$ of the Taylor series approximation.
+\begin{solution}
+To find the extrema, we set the derivative to $0$ and solve:
+$\dfrac{\partial f(\mathbf{x} + \Delta \mathbf{x})}{\partial \Delta \mathbf{x}}=\dfrac{\partial f(\mathbf{x})}{\partial \mathbf{x}} + \dfrac{\partial^2 f(\mathbf{x})}{\partial \mathbf{x}^2}\Delta \mathbf{x}=0\\$
+$
+\Delta \mathbf{x}_m=-\left[\dfrac{\partial^2 f(\mathbf{x})}{\partial \mathbf{x}^2}\right]^{-1}\dfrac{\partial f(\mathbf{x})}{\partial \mathbf{x}}
+$
+\end{solution}
+
+\subsection{Keypoint Localization \mypoints{1.0}}
+\label{keypoint_loc}
+Given a keypoint $\mathbf{x} = (x, y, \sigma)$ obtained via the scale-space extrema step of SIFT (lecture 7 slide 40), what is the new keypoint obtained via the Taylor series approximation? Write the expression for the new keypoint.
+\begin{solution}
+$
+\mathbf{x}_{new}= \mathbf{x} + \Delta \mathbf{x}_m=\mathbf{x}-\left[\dfrac{\partial^2 f(\mathbf{x})}{\partial \mathbf{x}^2}\right]^{-1}\dfrac{\partial f(\mathbf{x})}{\partial \mathbf{x}}
+$
+\end{solution}
+
+\subsection{Purpose of Keypoint Localization \mypoints{3.0}}
+What is the purpose of the keypoint localization step in SIFT? Please explain.
+\begin{solution}
+Keypoint localization allows us to further filter the candidates we find using the scale-space extrema method where we compare a single candidate to its neighbors. By taking a taylor-series approximation, we find the accurate location of the extrema and we can use perform filtering by thresholding the value of the second-order taylor expansion (this gives us intensity at the point) in order to remove low-contrast candidates.\\
+Furthermore, since the DoG has a high response for edges, this may cause many locations with a high edge-response but may just be noise, to become a candidate keypoint. For this, we can use a second-order hessian matrix of the taylor expansion to compute the principal curvature and remove keypoints where one eignvalue is much larger than the second. This is very similar to the Harris corner detector we looked at previously.
+\end{solution}
+
+\subsection{Inaccuracy of Original Keypoint \mypoints{3.0}}
+Assume that the new keypoint from part \ref{keypoint_loc} is closer to a different pixel than it is to the original keypoint $\mathbf{x}$. Then, the original keypoint was not completely accurate. Propose a method to obtain a more accurate estimate of the keypoint. \emph{Note:} A similar method can be applied if the scale of the keypoint is inaccurate (i.e. the keypoint's scale is closer to the scale of a different Gaussian kernel used in computing the Difference of Gaussians).
+\begin{solution}
+We can threshold the value of our taylor expansion (which is relative to the keypoint) by checking if the offset vector is greater than $\frac{1}{2}$ in any dimension. If this is the case, then the extrema is actually closer to a different sample point (not the keypoint we found), so we instead interpolate about that new point instead.
+\end{solution}
+
+\newpage
+
+\section{Image Stitching \mypoints{15.0}}
+In this question, you will be implementing the image stitching pipeline used to create image panoramas. This pipeline combines SIFT, RANSAC, and homographies to find the homography between a pair of images. After finding the homography between the pair of images, you can use it to stitch the two images together.
+
+\emph{Note:} For extracting SIFT keypoints and features, you should install OpenCV version 4.5.1.48, which can be installed either by running the top cell of the Jupyter notebook or by using the following command: 
+\begin{minted}{python}
+pip install opencv-contrib-python==4.5.1.48
+\end{minted}
+
+\subsection{Obtaining SIFT Keypoints and Descriptors \mypoints{1.0}}
+(See the Jupyter notebook). In this sub-part, you will write a function to obtain SIFT keypoints and descriptors for an image. Make sure that your code is within the bounding box.
+
+\begin{solution}
+\begin{minted}{python}
+def run_sift(image, num_features):
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    sift = cv2.SIFT_create(nfeatures=num_features)
+    return sift.detectAndCompute(gray,None)
+\end{minted}
+\end{solution}
+
+\subsection{Finding Initial Correspondences \mypoints{1.0}}
+(See the Jupyter notebook). In this sub-part, you will write a function to obtain an initial set of correspondences by matching SIFT descriptors. Make sure that your code is within the bounding box.
+
+\begin{solution}
+\begin{minted}{python}
+def find_sift_correspondences(kp1, des1, kp2, des2, ratio):
+    correspondences = []
+    for idx, kp in enumerate(kp1):
+        distances = ((des2-des1[idx])**2).sum(axis=1) # compute distances
+        ndx = distances.argsort()
+        if distances[ndx[0]] < ratio * distances[ndx[1]]:
+            correspondences.append((kp.pt, kp2[ndx[0]].pt))
+
+    return correspondences
+\end{minted}
+\end{solution}
+
+\subsection{Visualizing Initial Correspondences \mypoints{1.0}}
+(See the Jupyter notebook). In this sub-part, you will visualize the initial correspondences obtained by matching SIFT descriptors. Copy the saved image from the Jupyter notebook here.
+
+\begin{solution}
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=\linewidth]{Data/Solutions/question_3_3.pdf}
+    \end{figure}
+\end{solution}
+
+\subsection{Computing Homography Using DLT \mypoints{1.0}}
+(See the Jupyter notebook). In this sub-part, you will start implementing the RANSAC loop in parts. Write a function to compute a homography between two images given a set of correspondences using direct linear transform (DLT). Make sure that your code is within the bounding box.
+
+\begin{solution}
+    \begin{minted}{python}
+def compute_homography(correspondences):
+    a = np.zeros((2 * len(correspondences), 9))
+    for i,((x1, y1), (x2, y2)) in enumerate(correspondences):
+        a[2 * i] = [-x1, -y1, -1, 0, 0, 0, x1*x2, y1*x2, x2]
+        a[2 * i + 1] = [0, 0, 0, -x1, -y1, -1, x1*y2, y1*y2, y2]
+    u, s, v = np.linalg.svd(a)
+    return v[8].reshape((3, 3))
+    \end{minted}
+    \end{solution}
+
+\subsection{Applying a Homography \mypoints{1.0}}
+(See the Jupyter notebook). In this sub-part, you will write a function that applies a homography to warp a set of 2D points. Make sure that your code is within the bounding box.
+
+\begin{solution}
+    \begin{minted}{python}
+def apply_homography(points, homography):
+    a = np.array(points).T # Each column is an x, y
+    a = np.vstack([a, np.ones((1, a.shape[1]))]) # Convert to homogeneous
+    b = (homography @ a).T # Apply transformation and transpose
+    return b[:,:2]/b[:,[-1]] # To heterogeneous, rows are now (x, y)
+    \end{minted}
+    \end{solution}
+
+\subsection{Computing Inliers \mypoints{1.0}}
+(See the Jupyter notebook). In this sub-part, you will write a function that computes the inlier correspondences given a homography, a list of possible correspondences, and a distance threshold. Make sure that your code is within the bounding box.
+
+\begin{solution}
+    \begin{minted}{python}
+    def compute_inliers(homography, correspondences, threshold):
+        # Nested function
+        def euclidian_error(correspondence):
+            p1 = np.array([[correspondence[0][0]],[correspondence[0][1]],[1]])
+            p2 = np.array([[correspondence[1][0]],[correspondence[1][1]]])
+            p2_est = np.dot(homography, p1) # Apply homography
+            p2_est = p2_est[:-1]/p2_est[-1] # Revert to (x, y)
+            return np.linalg.norm(p2 - p2_est) # Calculate euclidean error
+
+    inliers = []
+    outliers = []
+    for c in correspondences:
+        d = euclidian_error(c)
+        if d < threshold:
+            inliers.append(c)
+        else:
+            outliers.append(c)
+
+    return inliers, outliers
+    \end{minted}
+    \end{solution}
+
+\subsection{RANSAC Loop \mypoints{2.0}}
+(See the Jupyter notebook). In this sub-part, you will write a function that implements the RANSAC loop to compute a homography matrix and its inlier and outlier correspondences. This part uses some of the earlier parts such as computing a homography and inliers. Make sure that your code is within the bounding box.
+
+\begin{solution}
+    \begin{minted}{python}
+def ransac(correspondences, num_iterations, num_sampled_points, threshold):
+    max_inliers = ([], [], [], 0)
+    for i in range(num_iterations):
+        selected = random.sample(correspondences, num_sampled_points)
+        h = compute_homography(selected)
+        inliers, outliers = compute_inliers(h, correspondences, threshold)
+        if len(inliers) > max_inliers[3]:
+            max_inliers = (h, inliers, outliers, len(inliers))
+    return max_inliers[:3]
+    \end{minted}
+    \end{solution}
+
+\subsection{Visualizing RANSAC Inliers and Outliers \mypoints{1.0}}
+(See the Jupyter notebook). In this sub-part, you will visualize the inlier and outlier correspondences obtained from running the RANSAC loop on the initial correspondences obtained from matching SIFT features. Copy the saved images from the Jupyter notebook here.
+
+\begin{solution}
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=\linewidth]{Data/Solutions/question_3_8_inliers.pdf}
+    \end{figure}
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=\linewidth]{Data/Solutions/question_3_8_outliers.pdf}
+    \end{figure}
+\end{solution}
+
+\subsection{Bilinear Interpolation \mypoints{1.0}}
+(See the Jupyter notebook). In this sub-part, you will start implementing the actual image stitching in parts. As the image stitching relies on inverse warping and hence, interpolation, write a function that implements bilinear interpolation. Make sure that your code is within the bounding box.
+
+\begin{solution}
+    \begin{minted}{python}
+def interpolate(image, loc):
+    x, y = int(loc[0]), int(loc[1])
+    dx, dy = loc[0] - x, loc[1] - y
+    a = image[x, y] * (1 - dx)*(1-dy)
+    b = image[x + 1, y] * dx * (1 - dy)
+    c = image[x, y + 1] * (1 - dx) * dy
+    d = image[x + 1, y + 1] * dx * dy
+    return a + b + c + d
+    \end{minted}
+    \end{solution}
+
+\subsection{Image Stitching Given Homography \mypoints{2.0}}
+(See the Jupyter notebook). In this sub-part, you will  write a function to implement the actual image stitching using inverse warping given two images and the homography between them. Make sure that your code is within the bounding box.
+
+\begin{solution}
+    \begin{minted}{python}
+def stitch_image_given_H(image1, image2, homography):
+    h_inv = np.linalg.inv(homography)
+    warped = np.zeros((image1.shape[0], image1.shape[1] + image2.shape[1], 3))
+    warped[:image1.shape[0],:image1.shape[1]] = image1
+    for y in range(warped.shape[0]):
+        for x in range(warped.shape[1]):
+            p = np.array([x, y, 1])
+            p_prime = np.dot(homography, p)
+            p_prime = p_prime[:-1]/p_prime[-1]
+
+            if (p_prime[0] < 0 or p_prime[1] < 0
+            or p_prime[0] > image2.shape[1] - 1 
+            or p_prime[1] > image2.shape[0] - 1):
+                continue
+            # Average if pixel is in both images
+            if 0 <= y < image1.shape[0] and 0 <= x < image1.shape[1]:
+                warped[y][x] = (interpolate(image2, (p_prime[1], p_prime[0])) 
+                + warped[y][x])/2
+            else:
+                warped[y][x] = interpolate(image2, (p_prime[1], p_prime[0]))
+
+    return warped
+    \end{minted}
+    \end{solution}
+
+\subsection{Image Stitching: Putting It All Together \mypoints{1.0}}
+(See the Jupyter notebook). In this sub-part, you will put everything together and write a function that implements the whole image stitching pipeline. Make sure that your code is within the bounding box.
+
+\begin{solution}
+    \begin{minted}{python}
+def stitch_image(image1, image2, num_features, sift_ratio, ransac_iter, ransac_sampled_points, inlier_threshold, use_ransac=True):
+    kp1, des1 = run_sift(image1, num_features)
+    kp2, des2 = run_sift(image2, num_features)
+    correspondences = find_sift_correspondences(kp1, des1, kp2, des2, sift_ratio)
+    if use_ransac:
+        _, correspondences, _ = ransac(correspondences, ransac_iter, 
+        ransac_sampled_points, inlier_threshold)
+    h = compute_homography(correspondences)
+    return stitch_image_given_H(image1, image2, h)
+\end{minted}
+\end{solution}
+
+\subsection{Visualizing the Stitched Image \mypoints{1.0}}
+(See the Jupyter notebook). In this sub-part, you will visualize the stitched image. Copy the saved image from the Jupyter notebook here.
+
+\begin{solution}
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=\linewidth]{Data/Solutions/question_3_12.pdf}
+    \end{figure}
+\end{solution}
+
+\subsection{Visualizing the Stitched Image Without RANSAC \mypoints{1.0}}
+(See the Jupyter notebook). In this sub-part, you will visualize the stitched image if you do not use RANSAC. The result here should look much worse than the previous stitched image that uses RANSAC. Copy the saved image from the Jupyter notebook here.
+
+\begin{solution}
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=\linewidth]{Data/Solutions/question_3_13.pdf}
+    \end{figure}
+\end{solution}
+
+\newpage
+\section{Olympic Champion using Homography \mypoints{5.0}}
+
+In this question you will make yourself an Olympic swimming champion using homography.
+
+You are given the following image from Olympics 2012, where Gyurta is the new world champion.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\linewidth]{Images/pool-vfx.jpg}
+\end{figure}
+
+You are supposed to use homography and make yourself the new world champion.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{Images/question_4.png}
+\end{figure}
+
+To make yourself the world champion, you will need two images: (1) the Olympic pool, which is given to you and (2) an image with your name and flag besides it. We will provide you with 4 points on the pool image, which will be the corresponding points for the 4 corners of the image (top left, top right, bottom left, bottom right). Using these corresponding points, you will construct the homography matrix and stitch your name on the Olympic record. To get an image with your name and flag, you can use any method of your choice. We used Keynote + Screenshot (for Mac). 
+
+\subsection{Correspondence \mypoints{1.0}}
+(See the Jupyter notebook).
+Copy the correspondence list from the Jupyter notebook here.
+\begin{solution}
+    \begin{minted}{python}
+        A_1 = (0, 0)
+B_1 = (0, 331)
+C_1 = (1659, 0)
+D_1 = (1659, 331)
+correspondence = [
+                  ([334,158], A_1),
+                  ([340,190], B_1),
+                  ([528,157], C_1),
+                  ([545,187], D_1),
+]
+    \end{minted}
+\end{solution}
+
+\subsection{Stitching \mypoints{1.0}}
+(See the Jupyter notebook).
+In the previous question, you stitched two images side-by-side. In this sub-part, you will stitch one image inside the other. Make sure that your code is within the bounding box.
+\textit{Hint}: You will need to use code from the previous question and delete/modify a few lines from it.
+\begin{solution}
+    \begin{minted}{python}
+def stitch_image_given_H_new(pool_image, name_flag_image, homography):
+    warped = np.copy(pool_image)
+    for y in range(warped.shape[0]):
+        for x in range(warped.shape[1]):
+            p = np.array([x, y, 1])
+            p_prime = np.dot(homography, p)
+            p_prime = p_prime[:-1]/p_prime[-1]
+            if (p_prime[0] < 0 or p_prime[1] < 0 or p_prime[0] > name_flag_image.shape[1] - 1 or p_prime[1] > name_flag_image.shape[0] - 1):
+                continue
+            warped[y][x] = interpolate(name_flag_image, (p_prime[1], p_prime[0]))
+
+    return warped
+    \end{minted}
+\end{solution}
+
+\subsection{Visualize \mypoints{3.0}}
+(See the Jupyter notebook.)
+Display the final image with you as the world champion.
+
+\begin{solution}
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=\linewidth]{Data/Solutions/question_4.png}
+    \end{figure}
+\end{solution}
+
+\newpage
+\section{Eight-Point Algorithm \mypoints{10.0}}
+
+In this question, you will implement the eight-point algorithm to reconstruct 3D points associated with 2D correspondences of an image pair.
+
+\subsection{Compute the Essential Matrix \mypoints{2.0}}
+(See the Jupyter notebook). In this sub-part, you will compute the essential matrix using the eight-point algorithm. Make sure that your code is within the bounding box.
+\begin{solution}
+    \begin{minted}{python}
+def compute_essential_matrix(correspondences):
+    a = np.zeros((len(correspondences), 9))
+    for i,((x1, y1), (x2, y2)) in enumerate(correspondences):
+        a[i] = [x1*x2, x1*y2, x1, y1*x2, y1*y2, y1, x2, y2, 1]
+    _, _, v = np.linalg.svd(a)
+    f = v[8].reshape((3, 3))
+    u, s, v = np.linalg.svd(f)
+    s[2] = 0
+    f = u @ np.diag(s) @ v
+    return f
+    \end{minted}
+\end{solution}
+
+\subsection{Compute the Translation and Rotation \mypoints{2.0}}
+(See the Jupyter notebook). In this sub-part, you will compute the translation and rotation between the two images' cameras given the essential matrix. Make sure that your code is within the bounding box.
+\begin{solution}
+    \begin{minted}{python}
+def compute_translation_rotation(essential_matrix):
+    Rz = np.array([[0,-1,0],[1,0,0],[0,0,1]])
+    u, s, v = np.linalg.svd(essential_matrix)
+    t_hat = (u @ Rz) @ (np.diag(s) @ u.T)
+    r = (u @ Rz.T) @ v
+    t = np.array([t_hat[2][1], t_hat[0][2], t_hat[1][0]]) # Extract translation from skew symmetric
+    return t, r, t_hat
+    \end{minted}
+\end{solution}
+ 
+\subsection{Sanity Check Translation and Rotation \mypoints{3.0}}
+(See the Jupyter notebook). In this sub-part, you will perform some sanity-checks on the translation and rotation obtained previously. Copy the output from the Jupyter notebook here.
+\begin{solution}
+    \begin{minted}{text}
+        Translation vector:  [0.71854834 0.00666255 0.02786394]
+        Rotation matrix: 
+            [[ 0.98419658  0.03606853 -0.17336709]
+            [ 0.03633853 -0.99933823 -0.0016174 ]
+            [-0.1733107  -0.00470807 -0.98485595]]
+        T_hat: 
+            [[ 1.04424451e-05 -2.88351617e-02  6.66254996e-03]
+            [ 2.78639384e-02 -6.45670843e-04 -6.94041454e-01]
+            [-6.94970171e-03  7.18548338e-01  6.35228398e-04]]
+        R^T: 
+            [[ 0.98419658  0.03633853 -0.1733107 ]
+            [ 0.03606853 -0.99933823 -0.00470807]
+            [-0.17336709 -0.0016174  -0.98485595]]
+        R^-1: 
+            [[ 0.98419658  0.03633853 -0.1733107 ]
+            [ 0.03606853 -0.99933823 -0.00470807]
+            [-0.17336709 -0.0016174  -0.98485595]]
+    \end{minted}
+\end{solution}
+
+\subsection{Compute Depths \mypoints{1.0}}
+(See the Jupyter notebook). In this sub-part, you will compute the depths of the 3D points corresponding to the given 2D correspondences. Make sure that your code is within the bounding box.
+
+\begin{solution}
+    \begin{minted}{python}
+def compute_depths(correspondences, translation, rotation):
+    depths = []
+    for c in correspondences:
+        x1 = np.array([*c[0], 1])
+        x2 = np.array([*c[1], 1])
+        a = np.array([-rotation @ x1, x2]).T
+        depths.append(np.linalg.pinv(a) @ translation)
+    return depths
+    \end{minted}
+\end{solution}
+
+\subsection{Reconstruct 3D Points \mypoints{1.0}}
+(See the Jupyter notebook). In this sub-part, you will reconstruct the 3D points given the 2D correspondences and the associated depths. Make sure that your code is within the bounding box.
+
+\begin{solution}
+    \begin{minted}{python}
+def reconstruct_3d(correspondences, depths):
+    points = []
+    for c, d in zip(correspondences, depths):
+        x1 = np.array([*c[0], 1]) * d[0]
+        x2 = np.array([*c[0], 1]) * d[1]
+        points.append((x1, x2))
+    return points
+    \end{minted}
+\end{solution}
+
+\subsection{Check the 3D Points \mypoints{1.0}}
+(See the Jupyter notebook). In this sub-part, you will check the reconstructed 3D points from the first image by reprojecting them into the second image. Copy the output from the Jupyter notebook here.
+\begin{solution}
+    \begin{minted}{text}
+0.02792031420774298
+    \end{minted}
+\end{solution}
+
+\end{document}
